@@ -71,3 +71,17 @@ def run_demo():
     print("\n\n=== TRANSLATION RESISTANCE DEMO ===")
     print("\n--- Resistance (JSON) ---")
     print(json.dumps(resistance, ensure_ascii=False, indent=2))
+
+def main():
+    try:
+        run_demo()
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        sys.exit(130)
+    except Exception as e:
+        print(f"\nERROR: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
