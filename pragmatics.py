@@ -50,3 +50,51 @@ Rules:
 - Do NOT guess the language.
 """
     return prutils.llm_json(client, system=system, user=user, temperature=0.2)
+
+# Step 2: translation resistance
+def analyze_translation_resistance(
+    client: OpenAI,
+    source_text: str,
+    english_translation: str,
+    source_language_context: str = "unknown",
+) -> Dict[str, Any]:
+    system = "You are a translation pragmatics analyst. You track what politeness meaning is preserved vs flattened in translation."
+    user = f"""
+{prconfig.politeness_schema}
+
+You are given:
+1) A source-language text (could be Language A or B)
+2) Its English translation
+
+Source language context (if known): {source_language_context}
+
+Source Text:
+\"\"\"{source_text}\"\"\"
+
+English Translation:
+\"\"\"{english_translation}\"\"\"
+
+Return ONLY a JSON object with this exact shape:
+
+{{
+  "feature_changes": {{
+    "addressee_elevation": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "speaker_self_lowering": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "directness_strategy": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "face_management": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "politeness_redundancy": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "obligation_softening": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}},
+    "grammaticalized_politeness_origin": {{"status": "preserved|weakened|lost|unknown", "explanation": "..."}}
+  }},
+  "english_compensation": ["..."],
+  "overall_resistance": {{
+    "level": "low|medium|high",
+    "rationale": "..."
+  }}
+}}
+
+Rules:
+- If the source text is not in English, you may reason about honorific/speech-level cues if visible.
+- If you cannot infer, use "unknown" status.
+"""
+    return prutils.llm_json(client, system=system, user=user, temperature=0.2)
