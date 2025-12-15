@@ -98,3 +98,51 @@ Rules:
 - If you cannot infer, use "unknown" status.
 """
     return prutils.llm_json(client, system=system, user=user, temperature=0.2)
+
+# Step 3: attribution A vs B
+def attribute_language_A_vs_B(
+    client: OpenAI,
+    fingerprint: Dict[str, Any],
+    language_A_profile: str,
+    language_B_profile: str,
+) -> Dict[str, Any]:
+    system = "You are a comparative pragmatics expert. You attribute which politeness system better explains a pragmatic fingerprint."
+    user = f"""
+{prconfig.politeness_schema}
+
+You will compare:
+- An unknown text fingerprint (already analyzed)
+- A politeness profile for Language A
+- A politeness profile for Language B
+
+Unknown Text Fingerprint (JSON):
+{json.dumps(fingerprint, ensure_ascii=False, indent=2)}
+
+Language A Politeness Profile:
+\"\"\"{language_A_profile}\"\"\"
+
+Language B Politeness Profile:
+\"\"\"{language_B_profile}\"\"\"
+
+Return ONLY a JSON object with this exact shape:
+
+{{
+  "attribution": {{
+    "winner": "A|B|unclear",
+    "confidence": 0.0,
+    "decisive_features": ["..."],
+    "reasoning": "..."
+  }},
+  "diagnostics": {{
+    "matches_A": ["..."],
+    "matches_B": ["..."],
+    "missing_information": ["..."]
+  }}
+}}
+
+Rules:
+- Confidence is a number from 0.0 to 1.0 (not a percentage).
+- Prefer "unclear" if evidence is weak or symmetric.
+- Do NOT use stereotypes about cultures; rely on the provided profiles + the fingerprint.
+"""
+    return prutils.llm_json(client, system=system, user=user, temperature=0.1)
