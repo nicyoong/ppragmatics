@@ -31,3 +31,46 @@ Language B (Southern Mandarin–leaning):
 - Higher politeness redundancy
 - Stronger explicit mitigation of imposition
 """).strip()
+
+@tree.command(
+    name="pragmatics",
+    description="Analyze pragmatic fingerprint and attribute Language A vs B"
+)
+@app_commands.describe(
+    text="English text (possibly translated)"
+)
+async def pragmatics_command(interaction: discord.Interaction, text: str):
+    await interaction.response.defer(thinking=True)
+
+    try:
+        pr_client = prconfig._client()
+
+        fingerprint = pragmatics.extract_pragmatic_fingerprint(
+            pr_client,
+            text,
+            language_context="English (possibly translated)"
+        )
+
+        attribution = pragmatics.attribute_language_A_vs_B(
+            pr_client,
+            fingerprint,
+            language_A_profile,
+            language_B_profile
+        )
+
+        response = {
+            "input_text": text,
+            "fingerprint": fingerprint,
+            "attribution": attribution
+        }
+
+        # Discord messages max ~2000 chars → format carefully
+        output = json.dumps(response, ensure_ascii=False, indent=2)
+
+        if len(output) > 1900:
+            output = output[:1900] + "\n… (truncated)"
+
+        await interaction.followup.send(f"```json\n{output}\n```")
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error: `{e}`")
