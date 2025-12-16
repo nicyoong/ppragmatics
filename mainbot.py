@@ -101,3 +101,10 @@ async def translation_resistance_command(
 
     output = json.dumps(result, ensure_ascii=False, indent=2)
     await interaction.followup.send(f"```json\n{output}\n```")
+
+@client.event
+async def on_ready():
+    await tree.sync()
+    print(f"Logged in as {client.user}")
+
+client.run(TOKEN)
