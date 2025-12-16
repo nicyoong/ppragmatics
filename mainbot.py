@@ -1,3 +1,4 @@
+import asyncio
 import json
 import textwrap
 import discord
@@ -9,6 +10,7 @@ import pragmatics
 import prconfig
 
 load_dotenv()
+analysis_lock = asyncio.Lock()
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -53,46 +55,47 @@ def split_message(text: str, limit: int = 1900):
 async def pragmatics_command(interaction: discord.Interaction, text: str):
     await interaction.response.defer(thinking=True)
 
-    try:
-        pr_client = prconfig._client()
+    async with analysis_lock:
+        try:
+            pr_client = prconfig._client()
 
-        fingerprint = pragmatics.extract_pragmatic_fingerprint(
-            pr_client,
-            text,
-            language_context="English (possibly translated)"
-        )
-
-        attribution = pragmatics.attribute_language_A_vs_B(
-            pr_client,
-            fingerprint,
-            language_A_profile,
-            language_B_profile
-        )
-
-        response = {
-            "input_text": text,
-            "fingerprint": fingerprint,
-            "attribution": attribution
-        }
-
-        # Discord messages max ~2000 chars → format carefully
-        output = json.dumps(response, ensure_ascii=False, indent=2)
-
-        chunks = split_message(output)
-
-        # First chunk
-        await interaction.followup.send(
-            f"```json\n{chunks[0]}\n```"
-        )
-
-        # Remaining chunks
-        for chunk in chunks[1:]:
-            await interaction.followup.send(
-                f"```json\n{chunk}\n```"
+            fingerprint = pragmatics.extract_pragmatic_fingerprint(
+                pr_client,
+                text,
+                language_context="English (possibly translated)"
             )
 
-    except Exception as e:
-        await interaction.followup.send(f"❌ Error: `{e}`")
+            attribution = pragmatics.attribute_language_A_vs_B(
+                pr_client,
+                fingerprint,
+                language_A_profile,
+                language_B_profile
+            )
+
+            response = {
+                "input_text": text,
+                "fingerprint": fingerprint,
+                "attribution": attribution
+            }
+
+            # Discord messages max ~2000 chars → format carefully
+            output = json.dumps(response, ensure_ascii=False, indent=2)
+
+            chunks = split_message(output)
+
+            # First chunk
+            await interaction.followup.send(
+                f"```json\n{chunks[0]}\n```"
+            )
+
+            # Remaining chunks
+            for chunk in chunks[1:]:
+                await interaction.followup.send(
+                    f"```json\n{chunk}\n```"
+                )
+
+        except Exception as e:
+            await interaction.followup.send(f"❌ Error: `{e}`")
 
 @tree.command(
     name="translation_resistance",
@@ -109,17 +112,22 @@ async def translation_resistance_command(
 ):
     await interaction.response.defer(thinking=True)
 
-    pr_client = prconfig._client()
+    async with analysis_lock:
+        pr_client = prconfig._client()
 
-    result = pragmatics.analyze_translation_resistance(
-        pr_client,
-        source,
-        translation,
-        source_language_context="unknown"
-    )
+        result = pragmatics.analyze_translation_resistance(
+            pr_client,
+            source,
+            translation,
+            source_language_context="unknown"
+        )
 
-    output = json.dumps(result, ensure_ascii=False, indent=2)
-    await interaction.followup.send(f"```json\n{output}\n```")
+        output = json.dumps(result, ensure_ascii=False, indent=2)
+        chunks = split_message(output)
+        for i, chunk in enumerate(chunks, start=1):
+            await interaction.followup.send(
+                f"**Part {i}/{len(chunks)}**\n```json\n{chunk}\n```"
+            )
 
 @client.event
 async def on_ready():
