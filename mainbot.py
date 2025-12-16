@@ -32,6 +32,17 @@ Language B (Southern Mandarin–leaning):
 - Stronger explicit mitigation of imposition
 """).strip()
 
+def split_message(text: str, limit: int = 1900):
+    """
+    Splits text into chunks that fit within Discord's message limit.
+    Leaves room for code block markers.
+    """
+    chunks = []
+    while text:
+        chunks.append(text[:limit])
+        text = text[limit:]
+    return chunks
+
 @tree.command(
     name="pragmatics",
     description="Analyze pragmatic fingerprint and attribute Language A vs B"
@@ -67,10 +78,18 @@ async def pragmatics_command(interaction: discord.Interaction, text: str):
         # Discord messages max ~2000 chars → format carefully
         output = json.dumps(response, ensure_ascii=False, indent=2)
 
-        if len(output) > 1900:
-            output = output[:1900] + "\n… (truncated)"
+        chunks = split_message(output)
 
-        await interaction.followup.send(f"```json\n{output}\n```")
+        # First chunk
+        await interaction.followup.send(
+            f"```json\n{chunks[0]}\n```"
+        )
+
+        # Remaining chunks
+        for chunk in chunks[1:]:
+            await interaction.followup.send(
+                f"```json\n{chunk}\n```"
+            )
 
     except Exception as e:
         await interaction.followup.send(f"❌ Error: `{e}`")
