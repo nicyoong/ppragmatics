@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 import pragmatics
 import prconfig
+import prutils
 
 load_dotenv()
 analysis_lock = asyncio.Lock()
@@ -131,6 +132,7 @@ async def translation_resistance_command(
 
 @client.event
 async def on_ready():
+    asyncio.create_task(prutils.checktime())
     await tree.sync()
     print(f"Logged in as {client.user}")
 
