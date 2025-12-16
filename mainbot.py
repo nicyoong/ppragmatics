@@ -74,3 +74,30 @@ async def pragmatics_command(interaction: discord.Interaction, text: str):
 
     except Exception as e:
         await interaction.followup.send(f"❌ Error: `{e}`")
+
+@tree.command(
+    name="translation_resistance",
+    description="Analyze translation resistance between source and translation"
+)
+@app_commands.describe(
+    source="Original text",
+    translation="Translated text"
+)
+async def translation_resistance_command(
+    interaction: discord.Interaction,
+    source: str,
+    translation: str
+):
+    await interaction.response.defer(thinking=True)
+
+    pr_client = prconfig._client()
+
+    result = pragmatics.analyze_translation_resistance(
+        pr_client,
+        source,
+        translation,
+        source_language_context="unknown"
+    )
+
+    output = json.dumps(result, ensure_ascii=False, indent=2)
+    await interaction.followup.send(f"```json\n{output}\n```")
